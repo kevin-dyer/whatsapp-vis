@@ -5,13 +5,18 @@ document.addEventListener("DOMContentLoaded", function(event) {
 	d3.csv("_chat.txt", function(data) {
 		var textData = formatTextData(data)
 
-		console.log("textData: ", textData);
+		// console.log("textData: ", textData);
 
+
+		var transitionSpeed = 3000
+		var trans = d3.transition()
+			.duration(transitionSpeed)
+			.ease(d3.easeLinear)
 
 		//FROM EXAMPLE
 		var fill = d3.scaleOrdinal(d3.schemeCategory20);
 		var fontScale = d3.scaleLinear()
-			.range([6, 24])
+			.range([4, 50])
 			.domain([
 				d3.min(textData, function(d) {
 					return d.size
@@ -20,22 +25,22 @@ document.addEventListener("DOMContentLoaded", function(event) {
 					return d.size
 				})
 			])
-		console.log("fontScale domain: ", fontScale.domain(), ", range: ", fontScale.range())
+		// console.log("fontScale domain: ", fontScale.domain(), ", range: ", fontScale.range())
 
 		
 		var layout = d3.cloud()
-		    .size([750, 400])
+		    .size([1000, 500])
 		    // .words([
 		    //   "Hello", "world", "normally", "you", "want", "more", "words",
 		    //   "than", "this"].map(function(d) {
 		    //   return {text: d, size: 10 + Math.random() * 90, test: "haha"};
 		    // }))
-		    .words(textData)
-		    .padding(5)
+		    // .words(textData)
+		    .padding(16)
 		    .rotate(function() { return ~~(Math.random() * 2) * 90; })
 		    .font("Impact")
 		    .fontSize(function(d) { return fontScale(d.size); })
-		    .on("end", draw);
+		    // .on("end", draw);
 
 		  var svg = d3.select("body").append("svg")
 	      .attr("width", layout.size()[0])
@@ -43,6 +48,10 @@ document.addEventListener("DOMContentLoaded", function(event) {
 		    .append("g")
 		      .attr("transform", "translate(" + layout.size()[0] / 2 + "," + layout.size()[1] / 2 + ")")
 
+		  // layout.words(nextData);
+		  // layout.start();
+
+				
 		// layout.start();
 
 		function draw(words) {
@@ -50,7 +59,17 @@ document.addEventListener("DOMContentLoaded", function(event) {
 		  var text = svg.selectAll("text")
 		      .data(words, function (d) {return d.text})
 
-		  text.transition()
+		  var n = 0;
+		  text.each(function() { 
+	       n++;
+	   	})
+		  .transition(trans).duration(transitionSpeed).ease(d3.easeLinear)
+		  .on('end', function() {
+		  		n--;
+	       if (!n) {
+	           nextTick();
+	       }
+		  })
 	      .style("font-size", function(d) { return fontScale(d.size) + "px"; })
 	      .attr("transform", function(d) {
 	        return "translate(" + [d.x, d.y] + ")rotate(" + d.rotate + ")";
@@ -60,40 +79,95 @@ document.addEventListener("DOMContentLoaded", function(event) {
 	      .style("fill", function(d, i) { return fill(i); })
 	      .attr("text-anchor", "middle")
 	      .text(function(d) { return d.text; })
-	      .transition()
+	      .each(function() {
+		       n++;
+		   	})
+	      .transition(trans).duration(transitionSpeed).ease(d3.easeLinear)
+	      .on('end', function() {
+			  		n--;
+		       if (!n) {
+		           nextTick();
+		       }
+			  })
 		      .style("font-size", function(d) { return fontScale(d.size) + "px"; })
 		      .attr("transform", function(d) {
 		        return "translate(" + [d.x, d.y] + ")rotate(" + d.rotate + ")";
 		      })
 		   text.exit()
-		   	.transition()
+		   .each(function() {
+		       n++;
+		   	})
+		   	.transition(trans).duration(transitionSpeed).ease(d3.easeLinear)
+		   	.on('end', function() {
+			  		n--;
+		       if (!n) {
+		           nextTick();
+		       }
+			  })
 		   	.style("font-size", 1)
 		   	.remove()
+
+		  nextData = formatTextData(allData.slice(tickIndex, tickIndex + 10));
 		}
+
+		var allData = data;
+		var tickIndex = 0;
+		var nextData = formatTextData(allData.slice(tickIndex, tickIndex + 10));
+		function nextTick () {
+			// if (tickIndex) {
+			// 	// layout.on('end', function() {})
+			// 	console.log("drawing again:")
+			// 	setTimeout(function(){
+			// 		draw(nextData) //draw previous data first
+			// 	},200)
+			// }
+			// nextData = formatTextData(allData.slice(tickIndex, tickIndex + 10));
+
+			console.log("nextTick called! tickIndex: ", tickIndex)
+			tickIndex++
+			layout.on('end', draw)
+			layout.words(nextData);
+			
+				setTimeout(function(){
+					layout.start();
+				},0)
+			// layout.start()
+
+		}
+
+		//START!!!
+		nextTick()
 
 		function startTick (data) {
 			// var remainingData = textData;
 			var allData = data
+			var index = 0
 			var interval = setInterval(function() {
-				var nextData = formatTextData(allData.splice(0,50));
+				var nextData = formatTextData(allData.slice(index, index + 10));
+				index++
 
-				console.log("ticking along! allData length: ", allData.length)
+
+				// console.log("ticking along! allData length: ", allData.length)
 				layout.words(nextData);
 				layout.start();
 
-				if (allData.length === 0) {
+				// if (allData.length === 0) {
+				// 	console.log("stopping interval!");
+				// 	clearInterval(interval);
+				// }
+				if (index === allData.length - 1) {
 					console.log("stopping interval!");
 					clearInterval(interval);
 				}
-			}, 2000)
+			}, 1000)
 		}
 
-		startTick(data)
+		// startTick(data)
 	});
 });
 
 function formatTextData (data) {
-	console.log("data: ", data);
+	// console.log("data: ", data);
 
 
 			// var gLove = 0;
@@ -105,8 +179,8 @@ function formatTextData (data) {
 			var splitLine = lineValues.split(/\: /);
 			var nameLine = splitLine[1] === "Giorgia's Phone" ? 'Giorgia' : 'Kevin'
 			var textLine = splitLine.slice(2).join(': ')
-				.replace(/<\w>/g, '')
-				.replace(/\.|,|\?|\"|\*/g, '');
+				.replace(/<[\w|\s]+>/g, '')
+				.replace(/\.|,|\?|\"|\*|\!/g, '');
 
 			// console.log("textLine: ", textLine)
 			// var wordMatch = /love you/i
@@ -119,17 +193,6 @@ function formatTextData (data) {
 			// 	kLove += 1;
 			// }
 
-			// if (nameLine == 'Giorgia') {
-			// 	gLove += 1
-			// }
-
-			// if (nameLine == 'Kevin') {
-			// 	kLove += 1;
-			// }
-
-			// if (textLine.match(/love/i)) {
-			// 	console.log(nameLine, textLine)
-			// }
 
 			//EXAMPLE DATA FORMAT:
 			// {
@@ -166,7 +229,7 @@ function formatTextData (data) {
 			// console.log("dictionary: ", dictionary)
 		});
 
-		console.log("dictionary length: ", Object.keys(dictionary))
+		// console.log("dictionary length: ", Object.keys(dictionary))
 
 		var textData = Object.keys(dictionary).map(function(entry) {
 			return {
